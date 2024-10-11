@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Request Sender</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-gray-100 to-gray-300 min-h-screen flex items-center justify-center">
+
+    <div class="w-full max-w-5xl p-6">
+        <div class="flex flex-col md:flex-row bg-white shadow-lg rounded-lg overflow-hidden">
+            <!-- Form Section -->
+            <div class="md:w-2/3 p-6 bg-white">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4 text-center">Request Sender</h2>
+
+                <div class="mb-6">
+                    <label for="url" class="block text-sm font-medium text-gray-700 mb-2">API URL</label>
+                    <input id="url" type="text" value="https://jsonplaceholder.typicode.com/posts"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        placeholder="Enter API URL">
+                </div>
+
+                <div class="mb-6">
+                    <label for="interval" class="block text-sm font-medium text-gray-700 mb-2">Interval (ms)</label>
+                    <input id="interval" type="number" value="1000"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        placeholder="Enter interval in milliseconds">
+                </div>
+
+                <div class="mb-6">
+                    <label for="payload" class="block text-sm font-medium text-gray-700 mb-2">Payload (JSON)</label>
+                    <textarea id="payload" rows="5"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        placeholder="Enter payload template">
+{
+    "username": "username",
+    "email": "email",
+    "password": "password"
+}
+                    </textarea>
+                </div>
+
+                <button id="startButton"
+                    class="w-full bg-indigo-600 text-white px-4 py-3 rounded-lg font-semibold hover:bg-indigo-700 transition duration-300 ease-in-out">
+                    Mulai Request
+                </button>
+            </div>
+
+            <!-- Alert Section -->
+            <div class="md:w-1/3 bg-gradient-to-r from-indigo-600 to-indigo-500 text-white p-6">
+                <h2 class="text-xl font-semibold text-white mb-4">Status</h2>
+                <div id="alert" class="hidden p-4 text-white bg-green-500 rounded-lg mb-4" role="alert">
+                    Request berhasil!
+                </div>
+                <div id="alertError" class="hidden p-4 text-white bg-red-500 rounded-lg mb-4" role="alert">
+                    Request gagal!
+                </div>
+
+                <div class="flex flex-col items-center">
+                    <svg class="w-16 h-16 text-indigo-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 3v18h18V3H3z"></path>
+                    </svg>
+                    <p class="text-sm">Kirim request dengan interval yang telah diatur dan lihat statusnya di sini.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let intervalId = null;
+
+        // Fungsi untuk membuat username acak
+        function generateRandomUsername() {
+            const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let username = '';
+            for (let i = 0; i < 8; i++) {
+                username += chars[Math.floor(Math.random() * chars.length)];
+            }
+            return username;
+        }
+
+        // Fungsi untuk membuat email acak
+        function generateRandomEmail() {
+            const domains = ['gmail.com', 'yahoo.com', 'outlook.com'];
+            return generateRandomUsername() + '@' + domains[Math.floor(Math.random() * domains.length)];
+        }
+
+        // Fungsi untuk membuat password acak
+        function generateRandomPassword() {
+            const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()';
+            let password = '';
+            for (let i = 0; i < 12; i++) {
+                password += chars[Math.floor(Math.random() * chars.length)];
+            }
+            return password;
+        }
+
+        // Fungsi untuk membangun payload dinamis berdasarkan konfigurasi
+        function buildPayload(template) {
+            let payload = {};
+            for (const key in template) {
+                if (template[key] === 'username') {
+                    payload[key] = generateRandomUsername();
+                } else if (template[key] === 'email') {
+                    payload[key] = generateRandomEmail();
+                } else if (template[key] === 'password') {
+                    payload[key] = generateRandomPassword();
+                } else {
+                    payload[key] = template[key];
+                }
+            }
+            return payload;
+        }
+
+        // Fungsi untuk menampilkan alert sukses atau error
+        function showAlert(type) {
+            const successAlert = document.getElementById('alert');
+            const errorAlert = document.getElementById('alertError');
+            if (type === 'success') {
+                successAlert.classList.remove('hidden');
+                errorAlert.classList.add('hidden');
+            } else if (type === 'error') {
+                errorAlert.classList.remove('hidden');
+                successAlert.classList.add('hidden');
+            }
+
+            setTimeout(() => {
+                successAlert.classList.add('hidden');
+                errorAlert.classList.add('hidden');
+            }, 3000);
+        }
+
+        // Fungsi utama untuk mengirim request
+        function startRequestLoop(url, payloadTemplate, intervalMs) {
+            return setInterval(() => {
+                const payload = buildPayload(payloadTemplate);
+
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Success:', data);
+                    showAlert('success');
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showAlert('error');
+                });
+
+            }, intervalMs);
+        }
+
+        // Event handler untuk tombol Mulai/Hentikan
+        document.getElementById('startButton').addEventListener('click', function () {
+            const url = document.getElementById('url').value;
+            const intervalMs = parseInt(document.getElementById('interval').value);
+            const payloadTemplate = JSON.parse(document.getElementById('payload').value);
+
+            if (intervalId === null) {
+                intervalId = startRequestLoop(url, payloadTemplate, intervalMs);
+                this.innerText = 'Hentikan Request';
+                this.classList.remove('bg-indigo-600');
+                this.classList.add('bg-red-500', 'hover:bg-red-600');
+            } else {
+                clearInterval(intervalId);
+                intervalId = null;
+                this.innerText = 'Mulai Request';
+                this.classList.remove('bg-red-500');
+                this.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
+            }
+        });
+    </script>
+
+</body>
+</html>
